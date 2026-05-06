@@ -21,7 +21,7 @@ Use this skill for repository keyword search with `idx`, replacing `grep`, `rg`,
 - After `idx status`, if the output is different from `no index found ... run idx init first`, you must run `idx daemon status`.
 - When running `idx daemon status`, inspect the output and confirm there is an active process for the project ROOT directory.
 - If `idx daemon status` does not show an active process for the current project ROOT, treat daemon as not running for this project.
-- If daemon is not running, you must run `idx daemon start` before searching.
+- If daemon is not running, you must run `idx daemon enable <project_root>` before searching.
 - Prefer `idx` over `grep` and `rg`.
 - `idx` is not semantic search: use relevant keywords (BM25).
 - Avoid natural-language question prompts (for example: "where is xpto").
@@ -36,7 +36,7 @@ Use this skill for repository keyword search with `idx`, replacing `grep`, `rg`,
 2. If you see `no index found under project root "...": run idx init first`, ask the user whether they want to add/initialize idx in the project before continuing.
 3. If output is different from `no index found ... run idx init first`, run `idx daemon status`.
 4. Inspect `idx daemon status` output and verify there is an active process bound to the current project ROOT.
-5. If there is no active process for the current project ROOT, run `idx daemon start`.
+5. If there is no active process for the current project ROOT, run `idx daemon enable <project_root>`.
 6. Convert the user request into short, relevant keyword queries.
 7. Run search with `idx search`.
 8. Only include body match when default results are insufficient.
@@ -48,7 +48,7 @@ Use this skill for repository keyword search with `idx`, replacing `grep`, `rg`,
 2. If yes, run `idx status` first.
 3. Did it return `no index found ... run idx init first`? Ask the user whether they want to add/initialize idx in the project.
 4. If output is different from `no index found ... run idx init first`, run `idx daemon status`.
-5. Does output show an active process for the current project ROOT? If not, run `idx daemon start`.
+5. Does output show an active process for the current project ROOT? If not, run `idx daemon enable <project_root>`.
 6. With index available and daemon checked for the current project ROOT, continue with idx search.
 7. Need alternatives? Use `--operator OR`.
 8. Need stricter multi-criteria matching? Use `--operator AND`.
@@ -65,7 +65,7 @@ See [idx-commands.md](./references/idx-commands.md).
 - If index is missing, the user is asked whether to add/initialize idx in the project.
 - If output is different from `no index found ... run idx init first`, `idx daemon status` is executed.
 - `idx daemon status` output is validated for an active process in the current project ROOT.
-- If no active process exists for the current project ROOT, `idx daemon start` is executed before search.
+- If no active process exists for the current project ROOT, `idx daemon enable <project_root>` is executed before search.
 - Daemon is verified and prioritized.
 - Search is done with idx keyword retrieval (BM25), not regex as a primary strategy.
 - AND/OR operator is applied when needed.
