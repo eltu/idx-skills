@@ -11,8 +11,8 @@ Official documentation:
 
 1. Run `idx status` at the start.
 2. If there is no index (`no index found ... run idx init first`), ask the user whether they want to add/initialize idx in the project.
-3. With an available index, check daemon status.
-4. Start daemon if needed.
+3. With an available index, run `idx daemon status`.
+4. If daemon is not running, run `idx daemon start`.
 5. Search using relevant keywords.
 
 ## Missing Index (Confirmation Required)
@@ -43,6 +43,9 @@ idx status
 
 # initialize index (only with explicit user confirmation)
 idx init
+
+# check daemon status
+idx daemon status
 
 # start daemon (when not active)
 idx daemon start
