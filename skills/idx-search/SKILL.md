@@ -25,6 +25,10 @@ Use this skill for repository keyword search with `idx`, replacing `grep`, `rg`,
 - Prefer `idx` over `grep` and `rg`.
 - `idx` is not semantic search: use relevant keywords (BM25).
 - Avoid natural-language question prompts (for example: "where is xpto").
+- **Always add `--agent-compact` to every search command to optimize context usage.**
+- **Always use `--size 2` to limit results and `--from` to paginate when navigating through results (e.g., `--from 2` for next page, `--from 4` for third page).**
+- **Always specify the file extension with `--ext` (e.g., `--ext ".go"`, `--ext ".ts"`) based on the target file type.**
+- **When you know the path or filename, use `--path` to narrow scope. Support wildcards in `--path` (e.g., `--path "*main.go"`, `--path "internal/api/*handler*"`).**
 - For boolean logic, use `--operator OR` or `--operator AND`.
 - When AND returns sparse results, use `--relaxation >N` to soften the query instead of immediately switching to OR. Relaxation only activates when the query has **more than N terms**; it then removes trailing terms progressively down to a single term.
 - Use `--path` to narrow results to a specific directory or file prefix when the search scope is known.
@@ -50,11 +54,13 @@ Use this skill for repository keyword search with `idx`, replacing `grep`, `rg`,
 4. Inspect `idx daemon status` output and verify there is an active process bound to the current project ROOT.
 5. If there is no active process for the current project ROOT, run `idx daemon enable <project_root>`.
 6. Convert the user request into short, relevant keyword queries.
-7. Run search with `idx search`.
-8. If AND results are sparse, try `--relaxation >N` before switching to OR. Remember: relaxation only kicks in when the query has more than N terms.
-9. Narrow scope with `--path` when the target directory is known; add `--ext` to filter by file extension.
-10. Use `--files-only` for a fast file-level overview; drill down with `--context` or `--matches-only` as needed.
-11. Deliver results with an objective summary and refinement options.
+7. Prepare the search command with mandatory flags: `--agent-compact`, `--size 2`, and `--ext <extension>` (specify the actual file extension).
+8. Add `--path` when you know the target directory or filename pattern (supports wildcards).
+9. Run search with `idx search`.
+10. If AND results are sparse, try `--relaxation >N` before switching to OR. Remember: relaxation only kicks in when the query has more than N terms.
+11. For additional results, use `--from 2`, `--from 4`, etc. to paginate through pages of 2 results each.
+12. Use `--files-only` for a fast file-level overview; drill down with `--context` or `--matches-only` as needed.
+13. Deliver results with an objective summary and refinement options.
 
 ## Decision Flow
 
@@ -64,18 +70,18 @@ Use this skill for repository keyword search with `idx`, replacing `grep`, `rg`,
 4. If output is different from `no index found ... run idx init first`, run `idx daemon status`.
 5. Does output show an active process for the current project ROOT? If not, run `idx daemon enable <project_root>`.
 6. With index available and daemon checked for the current project ROOT, continue with idx search.
-7. Need alternatives? Use `--operator OR`.
-8. Need stricter multi-criteria matching? Use `--operator AND`.
-9. AND results too sparse? Try `--relaxation >N` before switching to OR (relaxation activates only when query has more than N terms).
-10. Know the directory scope? Add `--path <dir>` to filter. Know the file type? Add `--ext <ext>`.
-10a. Only need files of a specific type/path with no specific terms? Use metadata-only search: `idx search --path <dir>` or `idx search --ext <ext>`.
-11. Need file-level overview first? Use `--files-only`.
-12. Need pagination? Use `--size` and `--from`.
-13. Need surrounding code context? Use `--context N`.
-14. Index appears outdated? Check `status --profile` and only use `sync` if user asks.
-15. User wants to audit index content? Use `idx inspect [path]`.
-16. User wants foreground file watching? Use `idx watch [--debounce <duration>] [--show-updated-files]`.
-17. User wants to remove index? Use `idx destroy` only after explicit confirmation.
+7. **Always prepare the search command with `--agent-compact`, `--size 2`, and `--ext <extension>` (identify the target file type).**
+8. **Know the path or filename pattern? Add `--path <pattern>` (supports wildcards like `*main.go`).**
+9. Need alternatives? Use `--operator OR`.
+10. Need stricter multi-criteria matching? Use `--operator AND`.
+11. AND results too sparse? Try `--relaxation >N` before switching to OR (relaxation activates only when query has more than N terms).
+12. Need more results? Use `--from 2`, `--from 4`, etc. to paginate (each page shows 2 results with `--size 2`).
+13. Need file-level overview first? Use `--files-only` (combine with `--agent-compact`, `--size 2`, `--ext`).
+14. Need surrounding code context? Use `--context N`.
+15. Index appears outdated? Check `status --profile` and only use `sync` if user asks.
+16. User wants to audit index content? Use `idx inspect [path]`.
+17. User wants foreground file watching? Use `idx watch [--debounce <duration>] [--show-updated-files]`.
+18. User wants to remove index? Use `idx destroy` only after explicit confirmation.
 
 ## Reference Commands
 
@@ -89,13 +95,16 @@ See [idx-commands.md](./references/idx-commands.md).
 - `idx daemon status` output is validated for an active process in the current project ROOT.
 - If no active process exists for the current project ROOT, `idx daemon enable <project_root>` is executed before search.
 - Daemon is verified and prioritized.
+- **`--agent-compact` is always added to every search command for context optimization.**
+- **`--size 2` is always used to limit results per page.**
+- **`--ext <extension>` is always specified based on the target file type (e.g., `.go`, `.ts`).**
+- **`--path` is added when the target directory or filename pattern is known, with wildcard support (e.g., `*main.go`).**
+- **`--from` is used for pagination: `--from 2`, `--from 4`, etc. to navigate through pages of 2 results.**
 - Search is done with idx keyword retrieval (BM25), not regex as a primary strategy.
 - AND/OR operator is applied when needed.
 - `--relaxation` is tried before switching to OR when AND results are insufficient (only activates when query has more than N terms).
-- `--path` is used to narrow scope when the target directory is known.
-- `--ext` is used to filter by file extension when the language/type is known.
 - Metadata-only search (`--path`/`--ext` without query terms) is used when browsing by location or type.
-- `--files-only`, `--matches-only`, `--context`, `--size`, `--from`, `--explain`, and `--format` are applied only when they add value.
+- `--files-only`, `--matches-only`, `--context`, `--explain`, and `--format` are applied only when they add value.
 - `idx inspect` is used for index content diagnosis when needed.
 - `idx status --profile` is used for detailed coverage audits when requested.
 - `idx watch` and `idx destroy` are used only under explicit user request/confirmation.

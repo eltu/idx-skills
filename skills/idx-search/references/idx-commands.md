@@ -91,12 +91,13 @@ idx search "validacao token jwt middleware"
 # search with OR logic
 idx search "oauth jwt" --operator OR
 
-# search with AND logic
+# search with AND logic (default)
 idx search "rate limit auth" --operator AND
 
 # relax AND query: fallback kicks in only when query has MORE than N terms
 # (removes trailing terms progressively down to a single term)
 # Example: with '>2' relaxation activates only for queries with 3+ terms
+# Only works with --operator AND
 idx search "func abc x y int 10" --operator AND --relaxation ">2"
 
 # search with path filter
@@ -121,8 +122,8 @@ idx search --path internal/api --ext go
 # limit results to top 5 files
 idx search "cache invalidation" --size 5
 
-# paginate: skip first 5 ranked files
-idx search "cache invalidation" --size 5 --from 5
+# paginate: skip first 10 ranked files, show top 5
+idx search "cache invalidation" --from 10 --size 5
 
 # show only matched file paths
 idx search "middleware" --files-only
@@ -141,24 +142,30 @@ idx search "jwt" --format json
 
 # output results as pretty-printed JSON
 idx search "jwt" --format json --json-pretty
+
+# combine multiple flags
+idx search "auth token" --format json --explain --context 2
+
+# metadata search with output formatting
+idx search --path internal/core --ext go --files-only
 ```
 
 ## Search Flags Reference
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
+| `--format` | string | `text` | Output format. Allowed: `text`, `json` |
+| `--json-pretty` | bool | false | Pretty-print JSON output. Requires `--format json` |
+| `--explain` | bool | false | Include ranking score in output |
+| `--context` | int | 0 | Number of context lines around matches. Must be >= 0 |
+| `--matches-only` | bool | false | Show only directly matched lines (no surrounding context) |
+| `--files-only` | bool | false | Show only matched file paths (has priority over `--matches-only`) |
+| `--path` | stringArray | `[]` | Filter results by metadata path (repeatable) |
+| `--ext` | stringArray | `[]` | Filter by file extension, e.g. `go` or `.go` (repeatable, combinable with `--path`) |
+| `--from` | int | 0 | Pagination offset. Must be >= 0 |
+| `--size` | int | unset | Limit results to top N files. If set, must be > 0 |
 | `--operator` | string | `AND` | Boolean logic for multi-term queries: `AND` or `OR` |
-| `--relaxation` | string | — | Relax AND query with trailing-term fallback. Format: `>N`. Activates **only when query has more than N terms**; removes trailing terms progressively down to a single term. |
-| `--path` | stringArray | — | Filter results by metadata path (repeatable) |
-| `--ext` | stringArray | — | Filter by file extension, e.g. `go` or `.go` (repeatable, combinable with `--path`) |
-| `--size` | int | — | Limit results to top N files |
-| `--from` | int | — | Skip the first N ranked files (pagination) |
-| `--files-only` | bool | false | Show only matched file paths |
-| `--matches-only` | bool | false | Show only directly matched lines |
-| `--context` | int | — | Number of context lines around matches |
-| `--explain` | bool | false | Include ranking metadata (score) |
-| `--format` | string | `text` | Output format: `text` or `json` |
-| `--json-pretty` | bool | false | Pretty-print JSON output |
+| `--relaxation` | string | unset | Relax AND query with trailing-term fallback. Format: `>N`. Only works with `--operator AND`. Activates **only when query has more than N terms**; removes trailing terms progressively down to a single term. |
 
 ## Notes
 
@@ -166,13 +173,18 @@ idx search "jwt" --format json --json-pretty
 - Avoid natural-language question queries (for example: "where is xpto").
 - If index is missing, always confirm with the user before running `idx init`.
 - Always validate daemon status output for a process tied to the current project ROOT.
-- Use `--relaxation` to soften strict AND queries when multi-term matches are sparse. **Important:** relaxation only activates when the query has more than N terms; with `>1`, requires at least 2 terms to activate.
-- Use `--path` to narrow results to a specific directory or file prefix.
+- Use `--operator AND` (default): a document must contain all query terms to be ranked.
+- Use `--operator OR`: a document must contain at least one query term; broadens recall at the cost of precision.
+- Use `--relaxation` only with `--operator AND` to soften strict AND queries when multi-term matches are sparse. **Important:** relaxation only activates when the query has more than N terms; with `>1`, requires at least 2 terms to activate.
+- Use `--path` to narrow results to a specific directory or file prefix. Repeatable.
 - Use `--ext` to filter by file extension (e.g. `go`, `.go`). Repeatable and combinable with `--path`.
 - Use `--path` and/or `--ext` without query terms for metadata-only search (browsing by location or type).
-- Use `--files-only` for a quick overview of affected files before diving into matches.
+- Use `--files-only` for a quick overview of affected files before diving into matches. `--files-only` has priority over `--matches-only`.
+- Use `--context` to see surrounding lines around matches (must be >= 0).
+- Use `--from` and `--size` for pagination: `--from` skips results, `--size` limits output.
 - Use `--explain` only for debugging ranking; avoid in normal search flows.
-- Use `--format json` when output needs to be processed programmatically.
+- Use `--format json` or `--format json --json-pretty` when output needs to be processed programmatically.
 - Use `idx sync` only under explicit user request.
 - Use `idx destroy` only with explicit user confirmation.
 - `idx watch` runs in the foreground; prefer daemon for background monitoring.
+- `--json-pretty` requires `--format json`.
