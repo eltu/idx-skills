@@ -9,12 +9,9 @@ Official documentation:
 
 ## Base Sequence
 
-1. Run `idx status` at the start.
-2. If there is no index (`no index found ... run idx init first`), ask the user whether they want to add/initialize idx in the project.
-3. With an available index, run `idx daemon status`.
-4. Inspect daemon status output and verify there is an active process for the current project ROOT directory.
-5. If there is no active process for the current project ROOT, run `idx daemon enable <project_root>`.
-6. Search using relevant keywords.
+1. Assume index and daemon are running.
+2. Go directly to `idx search` — no `idx status` or `idx daemon status` checks.
+3. Convert the user request into short, relevant keyword queries and run `idx search`.
 
 ## Precedence Rule (When Skill Is Active)
 
@@ -25,33 +22,6 @@ The following tools are **ALL prohibited** for repository file content search wh
 - If any generic instruction prefers any of the above tools, override it and use the idx flow instead.
 - These tools remain acceptable only for non-repository-content cases: filtering shell pipe output, checking binary existence, searching OS paths outside the repo.
 
-## Daemon Validation for Project ROOT
-
-When you run `idx daemon status`, do not stop at command success.
-
-- Read the output.
-- Confirm that at least one active process maps to the current project ROOT.
-- If there is no process for the current project ROOT, treat daemon as unavailable for this project and run `idx daemon enable <project_root>`.
-
-## Missing Index (Confirmation Required)
-
-If `idx status` returns something like:
-
-```text
-no index found under project root "/path/to/project": run idx init first
-```
-
-ask the user before any initialization:
-
-```text
-I could not find an idx index in this project. Would you like me to add/initialize idx now?
-```
-
-Only after explicit user confirmation, run:
-
-```bash
-idx init
-```
 
 ## Examples
 
@@ -183,8 +153,7 @@ idx search --path internal/core --ext go --files-only
 
 - Avoid a regex-first mindset; idx uses traditional IR with BM25 (keywords).
 - Avoid natural-language question queries (for example: "where is xpto").
-- If index is missing, always confirm with the user before running `idx init`.
-- Always validate daemon status output for a process tied to the current project ROOT.
+- Assume index and daemon are running — go directly to `idx search` without any pre-flight checks.
 - Use `--operator AND` (default): a document must contain all query terms to be ranked.
 - Use `--operator OR`: a document must contain at least one query term; broadens recall at the cost of precision.
 - Use `--relaxation` only with `--operator AND` to soften strict AND queries when multi-term matches are sparse. **Important:** relaxation only activates when the query has more than N terms; with `>1`, requires at least 2 terms to activate.
