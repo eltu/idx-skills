@@ -88,12 +88,40 @@ install_copilot() {
   print_ok "Installed for Copilot at: $target_dir"
 }
 
+configure_claude_permissions() {
+  local settings_file="$HOME/.claude/settings.json"
+  local permission="Bash(idx *)"
+
+  if ! command -v jq &>/dev/null; then
+    print_warn "jq not found — skipping automatic permission setup."
+    print_warn "Add manually to $settings_file: \"$permission\""
+    return
+  fi
+
+  if [[ ! -f "$settings_file" ]]; then
+    mkdir -p "$(dirname "$settings_file")"
+    echo '{"permissions":{"allow":[]}}' > "$settings_file"
+    print_info "Created $settings_file"
+  fi
+
+  if jq -e --arg p "$permission" '.permissions.allow | index($p)' "$settings_file" > /dev/null 2>&1; then
+    print_info "Permission '$permission' already configured."
+  else
+    local tmp
+    tmp=$(mktemp)
+    jq --arg p "$permission" '.permissions.allow += [$p]' "$settings_file" > "$tmp"
+    mv "$tmp" "$settings_file"
+    print_ok "Added permission '$permission' to $settings_file"
+  fi
+}
+
 install_claude() {
   local target_dir="$HOME/.claude/skills/$SKILL_NAME"
   print_info "Installing for Claude..."
   print_info "Target: $target_dir"
   mkdir -p "$target_dir"
   cp -R "$SOURCE_SKILL_DIR"/. "$target_dir"/
+  configure_claude_permissions
   print_ok "Installed for Claude at: $target_dir"
 }
 
