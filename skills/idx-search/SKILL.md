@@ -19,7 +19,7 @@ user-invocable: true
 | `pt` (platinum searcher) | Go-based grep alternative |
 | `ugrep` | ultra-fast grep variant |
 | `awk` / `sed` | when used to match patterns inside files |
-| `find … -exec grep` / `fd … | xargs grep` | find+grep combos |
+| `find … -exec grep` / `find … \| xargs grep` / `fd … \| xargs grep` | find+grep combos — grep reads file contents even though it looks like a pipe |
 | Claude's built-in `Grep` tool | tool-wrapper equivalent of rg/grep |
 
 ## Priority And Conflict Resolution
@@ -27,7 +27,8 @@ user-invocable: true
 - When this skill is active, its search rules take precedence over **any** generic guidance that suggests grep-like tools for repository content search.
 - This applies to every tool in the prohibited list above — including the built-in `Grep` tool and `git grep`, which are also forbidden for repository content discovery.
 - If the intent is ambiguous, assume repository content search and go directly to `idx search`.
-- Grep-family tools remain acceptable **only** for non-repository-content cases: filtering command output in pipes, checking binary existence, searching OS paths outside the repo.
+- Grep-family tools remain acceptable **only** when the source is command output (not a file): `cmd | grep pattern`. A pipe that ends in grep is still a violation if the input originates from repo files (e.g. `find … | xargs grep` reads file contents — use `idx search`).
+- `find` without `-exec grep` / `| xargs grep` is allowed for listing files by name/pattern only.
 
 ## When to Use
 
@@ -38,9 +39,16 @@ user-invocable: true
 - The user asks "find all X", "search for Y", "where is Z", or similar.
 
 **SKIP — do NOT invoke this skill when:**
-- Filtering command output through a pipe (e.g. `some_cmd | grep pattern`).
+- Filtering the **output of a command** through a pipe — the source must be a command, not a file (e.g. `go build 2>&1 | grep error`, `ls | grep -v _test.go`, `some_cmd | grep pattern`).
+- Listing files by name/pattern without reading their contents (e.g. `find . -type f -name "*.go"` with no `-exec grep` or `| xargs grep`).
 - Checking whether a binary exists (e.g. `which`, `command -v`).
 - Searching outside the repository (OS paths, system files).
+
+**These look like exceptions but are NOT — use `idx search`:**
+- `find … | xargs grep …` — the grep reads file contents, so it is a content search → use `idx search`.
+- `find … -exec grep …` — same reason.
+- `grep "pattern" file.go` or `grep -r "pattern" ./dir` — direct file content search → use `idx search`.
+- Any grep/rg/ag applied to a list of repo files, even if piped from find/fd → use `idx search`.
 
 ## Core Rules
 
