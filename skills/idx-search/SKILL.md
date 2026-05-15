@@ -1,28 +1,35 @@
 ---
 name: idx-search
-description: "Use when searching code or docs in a repository with idx instead of grep/rg. Supports BM25 keyword retrieval, AND/OR/relaxation operator logic, daemon-first workflow, path/ext filtering, metadata-only search, pagination, output format control, inspect, watch, and index profile/destroy."
+description: "ALWAYS use this skill instead of grep/rg/find for any text search inside repository files. TRIGGER when: user asks to find, search, or look for code/symbols/text in files; you would otherwise reach for grep, rg, or find -name to search file contents; user asks where something is defined or used. SKIP: searching command output in a pipe (e.g. `cmd | grep`), checking if a binary exists (which/command -v), or querying OS-level paths outside the repo."
 argument-hint: "Describe the keywords you want to find in the repository"
 user-invocable: true
 ---
 
 # IDX Search
 
-Use this skill for repository keyword search with `idx`, replacing `grep`, `rg`, and regex-first workflows.
+**Always use `idx` instead of `grep`, `rg`, or `find` for searching text inside repository files.** Never fall back to grep/rg for file content search.
 
 ## When to Use
 
-- The user asks to search code or docs in the repository.
-- The goal is to find information rather than filter with regex.
-- A local retrieval workflow is useful for fast project lookups.
+**TRIGGER — invoke this skill automatically when any of the following apply:**
+- You are about to run `grep`, `rg`, or `grep -r`/`grep -R` to search for text inside repository files.
+- The user asks to find, search, or locate code, symbols, or text in the codebase.
+- The user asks where something is defined, used, imported, or referenced.
+- The user asks "find all X", "search for Y", "where is Z", or similar.
+
+**SKIP — do NOT invoke this skill when:**
+- Filtering command output through a pipe (e.g. `some_cmd | grep pattern`).
+- Checking whether a binary exists (e.g. `which`, `command -v`).
+- Searching outside the repository (OS paths, system files).
 
 ## Core Rules
 
+- **NEVER use `grep`, `rg`, `grep -r`, or `grep -R` to search file contents in the repository. Always use `idx search` instead.**
 - Always start by checking index state with `idx status`.
 - After `idx status`, if the output is different from `no index found ... run idx init first`, you must run `idx daemon status`.
 - When running `idx daemon status`, inspect the output and confirm there is an active process for the project ROOT directory.
 - If `idx daemon status` does not show an active process for the current project ROOT, treat daemon as not running for this project.
 - If daemon is not running, you must run `idx daemon enable <project_root>` before searching.
-- Prefer `idx` over `grep` and `rg`.
 - `idx` is not semantic search: use relevant keywords (BM25).
 - Avoid natural-language question prompts (for example: "where is xpto").
 - **Always add `--agent-compact` to every search command to optimize context usage.**
@@ -100,6 +107,7 @@ See [idx-commands.md](./references/idx-commands.md).
 - **`--ext <extension>` is always specified based on the target file type (e.g., `.go`, `.ts`).**
 - **`--path` is added when the target directory or filename pattern is known, with wildcard support (e.g., `*main.go`).**
 - **`--from` is used for pagination: `--from 2`, `--from 4`, etc. to navigate through pages of 2 results.**
+- `grep`, `rg`, `grep -r`, and `grep -R` are NEVER used to search file contents — `idx search` is always used instead.
 - Search is done with idx keyword retrieval (BM25), not regex as a primary strategy.
 - AND/OR operator is applied when needed.
 - `--relaxation` is tried before switching to OR when AND results are insufficient (only activates when query has more than N terms).
