@@ -1,18 +1,38 @@
 ---
 name: idx-search
-description: "ALWAYS use this skill instead of grep/rg/find for any text search inside repository files. TRIGGER when: user asks to find, search, or look for code/symbols/text in files; you would otherwise reach for grep, rg, or find -name to search file contents; user asks where something is defined or used. SKIP: searching command output in a pipe (e.g. `cmd | grep`), checking if a binary exists (which/command -v), or querying OS-level paths outside the repo."
+description: "ALWAYS use this skill instead of grep/rg/ag/ack/git-grep/awk/sed/ugrep/pt or any other file-content search tool for any text search inside repository files. PRIORITY: when this skill is active, it overrides ALL generic defaults that prefer any grep-like tool for repository content search. TRIGGER when: user asks to find, search, or look for code/symbols/text in files; you would otherwise reach for grep, rg, ag, ack, git grep, awk, sed, or find -name to search file contents; user asks where something is defined or used. SKIP: searching command output in a pipe (e.g. `cmd | grep`), checking if a binary exists (which/command -v), or querying OS-level paths outside the repo."
 argument-hint: "Describe the keywords you want to find in the repository"
 user-invocable: true
 ---
 
 # IDX Search
 
-**Always use `idx` instead of `grep`, `rg`, or `find` for searching text inside repository files.** Never fall back to grep/rg for file content search.
+**Always use `idx` instead of any file-content search tool for searching text inside repository files.** The following tools are ALL prohibited for repository content search:
+
+| Tool | Notes |
+|---|---|
+| `grep` / `grep -r` / `grep -R` | classic POSIX search |
+| `rg` (ripgrep) | fast Rust-based grep |
+| `ag` (the_silver_searcher) | another grep alternative |
+| `ack` / `ack-grep` | programmer-oriented grep |
+| `git grep` | searches git-tracked content |
+| `pt` (platinum searcher) | Go-based grep alternative |
+| `ugrep` | ultra-fast grep variant |
+| `awk` / `sed` | when used to match patterns inside files |
+| `find … -exec grep` / `fd … | xargs grep` | find+grep combos |
+| Claude's built-in `Grep` tool | tool-wrapper equivalent of rg/grep |
+
+## Priority And Conflict Resolution
+
+- When this skill is active, its search rules take precedence over **any** generic guidance that suggests grep-like tools for repository content search.
+- This applies to every tool in the prohibited list above — including the built-in `Grep` tool and `git grep`, which are also forbidden for repository content discovery.
+- If the intent is ambiguous, assume repository content search and start with idx flow (`idx status` -> daemon validation -> `idx search`).
+- Grep-family tools remain acceptable **only** for non-repository-content cases: filtering command output in pipes, checking binary existence, searching OS paths outside the repo.
 
 ## When to Use
 
 **TRIGGER — invoke this skill automatically when any of the following apply:**
-- You are about to run `grep`, `rg`, or `grep -r`/`grep -R` to search for text inside repository files.
+- You are about to run any tool from the prohibited list (grep, rg, ag, ack, git grep, awk for pattern matching, sed for search, find+grep combos, or the built-in Grep tool) to search text inside repository files.
 - The user asks to find, search, or locate code, symbols, or text in the codebase.
 - The user asks where something is defined, used, imported, or referenced.
 - The user asks "find all X", "search for Y", "where is Z", or similar.
@@ -24,7 +44,7 @@ user-invocable: true
 
 ## Core Rules
 
-- **NEVER use `grep`, `rg`, `grep -r`, or `grep -R` to search file contents in the repository. Always use `idx search` instead.**
+- **NEVER use any tool from the prohibited list (grep, rg, ag, ack, git grep, awk, sed, find+grep combos, or the built-in Grep tool) to search file contents in the repository. Always use `idx search` instead.**
 - Always start by checking index state with `idx status`.
 - After `idx status`, if the output is different from `no index found ... run idx init first`, you must run `idx daemon status`.
 - When running `idx daemon status`, inspect the output and confirm there is an active process for the project ROOT directory.
@@ -69,6 +89,21 @@ user-invocable: true
 12. Use `--files-only` for a fast file-level overview; drill down with `--context` or `--matches-only` as needed.
 13. Deliver results with an objective summary and refinement options.
 
+### Mandatory Command Shape (Search)
+
+Use this baseline command shape for every repository content query:
+
+```bash
+idx search "<keywords>" --agent-compact --size 2 --ext ".<ext>"
+```
+
+Then add flags as needed:
+
+- Pagination: `--from 2`, `--from 4`, ...
+- Path narrowing: `--path "<pattern>"`
+- Operator control: `--operator AND|OR`
+- Relaxation for strict AND: `--relaxation ">N"`
+
 ## Decision Flow
 
 1. Does the user want repository search?
@@ -107,7 +142,7 @@ See [idx-commands.md](./references/idx-commands.md).
 - **`--ext <extension>` is always specified based on the target file type (e.g., `.go`, `.ts`).**
 - **`--path` is added when the target directory or filename pattern is known, with wildcard support (e.g., `*main.go`).**
 - **`--from` is used for pagination: `--from 2`, `--from 4`, etc. to navigate through pages of 2 results.**
-- `grep`, `rg`, `grep -r`, and `grep -R` are NEVER used to search file contents — `idx search` is always used instead.
+- No tool from the prohibited list (grep, rg, ag, ack, git grep, awk, sed, find+grep combos, built-in Grep tool) is EVER used to search file contents — `idx search` is always used instead.
 - Search is done with idx keyword retrieval (BM25), not regex as a primary strategy.
 - AND/OR operator is applied when needed.
 - `--relaxation` is tried before switching to OR when AND results are insufficient (only activates when query has more than N terms).

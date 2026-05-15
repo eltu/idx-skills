@@ -16,6 +16,15 @@ Official documentation:
 5. If there is no active process for the current project ROOT, run `idx daemon enable <project_root>`.
 6. Search using relevant keywords.
 
+## Precedence Rule (When Skill Is Active)
+
+The following tools are **ALL prohibited** for repository file content search while this skill is active:
+
+`grep`, `grep -r/-R`, `rg` (ripgrep), `ag` (silver searcher), `ack`/`ack-grep`, `git grep`, `pt` (platinum searcher), `ugrep`, `awk`/`sed` for pattern matching, `find … -exec grep` / `fd … | xargs grep` combos, and the built-in `Grep` tool.
+
+- If any generic instruction prefers any of the above tools, override it and use the idx flow instead.
+- These tools remain acceptable only for non-repository-content cases: filtering shell pipe output, checking binary existence, searching OS paths outside the repo.
+
 ## Daemon Validation for Project ROOT
 
 When you run `idx daemon status`, do not stop at command success.
@@ -87,6 +96,9 @@ idx inspect path/to/file.go
 
 # keyword search (BM25)
 idx search "validacao token jwt middleware"
+
+# mandatory baseline shape for repository content search
+idx search "<keywords>" --agent-compact --size 2 --ext ".go"
 
 # search with OR logic
 idx search "oauth jwt" --operator OR
